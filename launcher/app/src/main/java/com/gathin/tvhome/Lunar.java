@@ -115,6 +115,18 @@ final class Lunar {
         return (int) Math.floor(l / Math.PI * 6);
     }
 
+    /** The sun's ecliptic longitude in degrees at the start of the day; Qingming arrives at 15°. */
+    static double sunLongitudeDegrees(long jdn, double tz) {
+        double t = (jdn - 2451545.5 - tz / 24) / 36525, t2 = t * t, dr = Math.PI / 180;
+        double m = 357.52910 + 35999.05030 * t - 0.0001559 * t2 - 0.00000048 * t * t2;
+        double l0 = 280.46645 + 36000.76983 * t + 0.0003032 * t2;
+        double dl = (1.914600 - 0.004817 * t - 0.000014 * t2) * Math.sin(dr * m);
+        dl += (0.019993 - 0.000101 * t) * Math.sin(dr * 2 * m) + 0.000290 * Math.sin(dr * 3 * m);
+        double l = (l0 + dl) * dr;
+        l -= Math.PI * 2 * Math.floor(l / (Math.PI * 2));
+        return Math.toDegrees(l);
+    }
+
     /** First day of the 11th lunar month (the one holding the winter solstice) of a Gregorian year. */
     static long lunarMonth11(int yy, double tz) {
         long off = jdFromDate(31, 12, yy) - 2415021;

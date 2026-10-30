@@ -108,4 +108,17 @@
     <string name="wx_cond_showers">陣雨</string>
     <string name="wx_cond_storm">雷陣雨</string>
     <string name="wx_turn">%1$s轉%2$s</string>
+    <!-- The festivals after the lunar date. -->
+    <string name="fest_new_year">元旦</string>
+    <string name="fest_qingming">清明節</string>
+    <string name="fest_labour">勞動節</string>
+    <string name="fest_national">國慶節</string>
+    <string name="fest_spring">春節</string>
+    <string name="fest_lantern">元宵節</string>
+    <string name="fest_dragon_boat">端午節</string>
+    <string name="fest_qixi">七夕</string>
+    <string name="fest_mid_autumn">中秋節</string>
+    <string name="fest_double_ninth">重陽節</string>
+    <string name="fest_laba">臘八節</string>
+    <string name="fest_new_years_eve">除夕</string>
 </resources>

@@ -2655,7 +2655,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setTextColor(greetingColor);
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
-        if (lunar) lunarDate.setText(Lunar.today(getResources(), lunarOffset));
+        if (lunar) {
+            String text = Lunar.today(getResources(), lunarOffset);
+            String fest = Holiday.name(getResources(), Holiday.code(Calendar.getInstance(), lunarOffset));
+            if (fest != null) text += "  ·  " + fest;
+            lunarDate.setText(text);
+        }
     }
 
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------
