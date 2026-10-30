@@ -181,10 +181,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View clockBlock;
     /** Current conditions beside the clock (weather); hidden entirely while never fetched or stale. */
     private Weather weather;
-    private View hereWeather;
-    private TextView hereTemp, hereRange;
-    private WeatherCurveView weatherCurve;
+    private TextView weatherLine;
     private String weatherCity;
+    private String settingsApp;
+    /** The card the weather line opens: the current conditions and the 24-hour curve. */
+    private PopupWindow weatherPopup;
+    private TextView popupTemp;
+    private WeatherCurveView popupCurve;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
@@ -405,6 +408,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Config cfg = Config.load(this);
         weather = new Weather(this);
         weatherCity = cfg.weatherCity;
+        settingsApp = cfg.settingsApp;
         homeAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
@@ -478,10 +482,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
         clockBlock = findViewById(R.id.leftBlock);
-        hereTemp = findViewById(R.id.hereTemp);
-        hereRange = findViewById(R.id.hereRange);
-        hereWeather = findViewById(R.id.hereWeather);
-        weatherCurve = findViewById(R.id.weatherCurve);
+        weatherLine = findViewById(R.id.weatherLine);
+        weatherLine.setOnClickListener(v -> toggleWeatherCard());
         greetingColor = greeting.getCurrentTextColor();
         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
         if (cfg.headerWhite) {
@@ -740,7 +742,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnClickListener(v -> {
             if (launcherSettingsButton) startActivityForResult(
                     new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
-            else open(systemIntent(Settings.ACTION_SETTINGS));
+            else if (!settingsApp.isEmpty()) {
+                // "package" or "package/activity" (config settings_app) — on vendor firmware the
+                // vendor's own settings, which Android's generic ACTION_SETTINGS misses.
+                int slash = settingsApp.indexOf('/');
+                Intent i = slash > 0
+                        ? new Intent().setClassName(settingsApp.substring(0, slash), settingsApp.substring(slash + 1))
+                        : getPackageManager().getLaunchIntentForPackage(settingsApp);
+                open(i != null ? i : systemIntent(Settings.ACTION_SETTINGS));
+            } else open(systemIntent(Settings.ACTION_SETTINGS));
         });
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
@@ -2507,24 +2517,76 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** Current conditions beside the clock; hidden entirely (no gap) while never fetched or older than three hours. */
+    /** The weather as one quiet line, "Wuhan  17~25°C  Overcast, rain later"; the card opens over it. */
     private void renderWeather() {
         Weather.City c = weather == null ? null : weather.current();
-        hereWeather.setVisibility(c == null ? View.GONE : View.VISIBLE);
         Weather.Hourly h = weather == null ? null : weather.hourly();
-        weatherCurve.setVisibility(h == null ? View.GONE : View.VISIBLE);
-        if (h != null) weatherCurve.setData(h, System.currentTimeMillis());
-        if (c == null) return;
-        hereTemp.setText(tempText(c, hereTemp.getTextSize()));
-        String range = c.hasRange ? "↑" + c.max + "°  ↓" + c.min + "°" : "";
-        hereRange.setText(range.isEmpty() ? weatherCity
-                : (weatherCity.isEmpty() ? range : weatherCity + " · " + range));
+        weatherLine.setVisibility(c == null ? View.GONE : View.VISIBLE);
+        if (c == null) {
+            if (weatherPopup != null && weatherPopup.isShowing()) weatherPopup.dismiss();
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        if (!weatherCity.isEmpty()) sb.append(weatherCity).append("  ");
+        if (c.hasRange) sb.append(c.min).append("~").append(c.max).append("℃  ");
+        sb.append(getString(Weather.conditionRes(c.code)));
+        if (!Weather.isWet(c.code)) {
+            int later = Weather.laterKind(h, System.currentTimeMillis());
+            if (later == 1) sb.append(getString(R.string.wx_later_rain));
+            else if (later == 2) sb.append(getString(R.string.wx_later_snow));
+        }
+        weatherLine.setText(sb);
+        if (weatherPopup != null && weatherPopup.isShowing()) {
+            popupTemp.setText(tempText(c, popupTemp.getTextSize()));
+            if (h != null) popupCurve.setData(h, System.currentTimeMillis());
+        }
+    }
+
+    /** The card over the weather line: current conditions and the next 24 hours. Second press closes. */
+    private void toggleWeatherCard() {
+        if (weatherPopup != null && weatherPopup.isShowing()) {
+            weatherPopup.dismiss();
+            return;
+        }
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(18 * density);
+        card.setPadding(pad, pad, pad, Math.round(10 * density));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF141B14);
+        bg.setCornerRadius(22 * density);
+        card.setBackground(bg);
+        popupTemp = new TextView(this);
+        popupTemp.setTextColor(0xFFFFFFFF);
+        popupTemp.setTextSize(26);
+        popupTemp.setTypeface(UiFont.get(this, R.string.font_light));
+        popupTemp.setIncludeFontPadding(false);
+        card.addView(popupTemp);
+        popupCurve = new WeatherCurveView(this);
+        popupCurve.setVisibility(View.VISIBLE);
+        card.addView(popupCurve, new LinearLayout.LayoutParams(
+                Math.round(440 * density), Math.round(74 * density)));
+        weatherPopup = new PopupWindow(card, LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT, true);
+        weatherPopup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        weatherPopup.setOutsideTouchable(true);
+        weatherPopup.setOnDismissListener(() -> {
+            if (weatherLine.getVisibility() == View.VISIBLE) weatherLine.requestFocus();
+        });
+        // The card hangs beside the line, in the empty top-right: dropping it straight down would
+        // cover only the top half of the dock title underneath, leaving its legs showing.
+        int[] loc = new int[2];
+        weatherLine.getLocationOnScreen(loc);
+        weatherPopup.showAtLocation(weatherLine, Gravity.NO_GRAVITY,
+                loc[0] + weatherLine.getWidth() + Math.round(28 * density),
+                loc[1] - Math.round(4 * density));
+        renderWeather();
     }
 
     /** "[icon] 18°": the conditions icon inline in the temp TextView, at the text's size. */
     private CharSequence tempText(Weather.City c, float textPx) {
         SpannableStringBuilder sb = new SpannableStringBuilder();
-        appendIcon(sb, Weather.icon(c), hereTemp.getCurrentTextColor(), textPx);
+        appendIcon(sb, Weather.icon(c), 0xFFFFFFFF, textPx);
         sb.append("  ").append(String.valueOf(c.temp)).append("°");
         return sb;
     }

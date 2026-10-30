@@ -149,4 +149,17 @@
     <!-- The weather curve under the clock: the current hour and the hours along its bottom. -->
     <string name="wx_now">现在</string>
     <string name="wx_hour">%1$d时</string>
+    <!-- The weather line's condition words (Open-Meteo's WMO codes), and what the next twelve hours bring. -->
+    <string name="wx_cond_clear">晴</string>
+    <string name="wx_cond_partly">多云</string>
+    <string name="wx_cond_cloudy">阴</string>
+    <string name="wx_cond_fog">雾</string>
+    <string name="wx_cond_drizzle">毛毛雨</string>
+    <string name="wx_cond_rain">雨</string>
+    <string name="wx_cond_freezing">冻雨</string>
+    <string name="wx_cond_snow">雪</string>
+    <string name="wx_cond_showers">阵雨</string>
+    <string name="wx_cond_storm">雷阵雨</string>
+    <string name="wx_later_rain">转雨</string>
+    <string name="wx_later_snow">转雪</string>
 </resources>

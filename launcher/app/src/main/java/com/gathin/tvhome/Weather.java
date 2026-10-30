@@ -66,7 +66,7 @@ final class Weather {
                 + "&current=temperature_2m,weather_code,is_day"
                 + "&daily=temperature_2m_max,temperature_2m_min"
                 // Two days of hourly points: the curve needs the next 24 hours even late in the day.
-                + "&hourly=temperature_2m,precipitation_probability&timezone=auto&forecast_days=2"
+                + "&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&forecast_days=2"
                 // config stores c/f; the API wants the full word.
                 + "&temperature_unit=" + ("f".equals(cfg.weatherUnits) ? "fahrenheit" : "celsius");
     }
@@ -135,14 +135,17 @@ final class Weather {
             JSONArray hTimes = hourly.getJSONArray("time");
             JSONArray hTemps = hourly.getJSONArray("temperature_2m");
             JSONArray hPop = hourly.optJSONArray("precipitation_probability");
-            StringBuilder ts = new StringBuilder(), cs = new StringBuilder(), ps = new StringBuilder();
+            JSONArray hCodes = hourly.optJSONArray("weather_code");
+            StringBuilder ts = new StringBuilder(), cs = new StringBuilder(), ps = new StringBuilder(), ws = new StringBuilder();
             for (int i = 0; i < hTimes.length(); i++) {
-                if (i > 0) { ts.append(','); cs.append(','); ps.append(','); }
+                if (i > 0) { ts.append(','); cs.append(','); ps.append(','); ws.append(','); }
                 ts.append(hTimes.getString(i));
                 cs.append(hTemps.getDouble(i));
                 ps.append(hPop == null ? -1 : Math.round(hPop.getDouble(i)));
+                ws.append(hCodes == null ? 0 : hCodes.getInt(i));
             }
             e.putString("hT", ts.toString()).putString("hC", cs.toString()).putString("hP", ps.toString())
+                    .putString("hW", ws.toString())
                     .putInt("hOff", new JSONObject(json).getInt("utc_offset_seconds"));
             e.putString("url", url).putLong("at", System.currentTimeMillis()).apply();
             Log.i(TAG, "weather: fetch ok here=" + t + " code=" + cur.getInt("weather_code")
@@ -169,13 +172,15 @@ final class Weather {
         final float[] temps;
         /** Precipitation probability 0–100, -1 when the model gave none. */
         final int[] pop;
+        final int[] codes;
         /** The city's seconds east of UTC, for turning the TV's now into the city's local scale. */
         final int offsetSec;
 
-        Hourly(long[] atLocal, float[] temps, int[] pop, int offsetSec) {
+        Hourly(long[] atLocal, float[] temps, int[] pop, int[] codes, int offsetSec) {
             this.atLocal = atLocal;
             this.temps = temps;
             this.pop = pop;
+            this.codes = codes;
             this.offsetSec = offsetSec;
         }
     }
@@ -191,22 +196,63 @@ final class Weather {
             String[] ts = tS.split(",");
             String[] cs = cS.split(",");
             String[] ps = pS.isEmpty() ? new String[0] : pS.split(",");
+            String[] ws = prefs.getString("hW", "").split(",");
             int off = prefs.getInt("hOff", 0);
             long[] atLocal = new long[ts.length];
             float[] temps = new float[ts.length];
             int[] pop = new int[ts.length];
+            int[] codes = new int[ts.length];
             for (int i = 0; i < ts.length; i++) {
                 // The ISO times are the city's local wall clock; encoding them as UTC minus the
                 // offset gives a single monotonic scale for the window arithmetic below.
                 atLocal[i] = java.time.LocalDateTime.parse(ts[i]).toEpochSecond(java.time.ZoneOffset.UTC);
                 temps[i] = Float.parseFloat(cs[i]);
                 pop[i] = i < ps.length ? Integer.parseInt(ps[i]) : -1;
+                codes[i] = i < ws.length ? Integer.parseInt(ws[i]) : 0;
             }
-            return new Hourly(atLocal, temps, pop, off);
+            return new Hourly(atLocal, temps, pop, codes, off);
         } catch (Exception ex) {
             Log.w(TAG, "weather: bad hourly cache: " + ex);
             return null;
         }
+    }
+
+    /** Rain and snow families of the WMO table: things that fall out of the sky. */
+    static boolean isWet(int code) {
+        return (code >= 51 && code <= 67) || (code >= 71 && code <= 77) || (code >= 80 && code <= 82)
+                || code == 85 || code == 86 || code >= 95;
+    }
+
+    /** The line's condition words for a WMO code (strings, see wx_cond_*). */
+    static int conditionRes(int code) {
+        if (code <= 1) return R.string.wx_cond_clear;
+        if (code == 2) return R.string.wx_cond_partly;
+        if (code == 3) return R.string.wx_cond_cloudy;
+        if (code == 45 || code == 48) return R.string.wx_cond_fog;
+        if (code >= 51 && code <= 57) return R.string.wx_cond_drizzle;
+        if (code == 66 || code == 67) return R.string.wx_cond_freezing;
+        if (code >= 71 && code <= 77) return R.string.wx_cond_snow;
+        if (code == 85 || code == 86) return R.string.wx_cond_snow;
+        if (code >= 95) return R.string.wx_cond_storm;
+        if (code >= 80) return R.string.wx_cond_showers;
+        return R.string.wx_cond_rain;
+    }
+
+    /**
+     * What the next twelve hours bring, when the air is not doing it already: 0 nothing, 1 rain,
+     * 2 snow — the first kind the model brings beats whatever comes later.
+     */
+    static int laterKind(Hourly h, long nowMillis) {
+        if (h == null) return 0;
+        long hourNow = Math.floorDiv(nowMillis / 1000L + h.offsetSec, 3600L) * 3600L;
+        int seen = 0;
+        for (int i = 0; i < h.atLocal.length && h.atLocal[i] < hourNow + 12 * 3600L; i++) {
+            if (h.atLocal[i] < hourNow) continue;
+            if (!isWet(h.codes[i])) continue;
+            int kind = (h.codes[i] >= 71 && h.codes[i] <= 77) || h.codes[i] == 85 || h.codes[i] == 86 ? 2 : 1;
+            if (seen == 0) seen = kind;
+        }
+        return seen;
     }
 
     /** WMO weather code to one of the seven thin-line icons. */

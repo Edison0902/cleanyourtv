@@ -166,6 +166,8 @@ final class Config {
     final boolean consumeVolumeKeys;
     /** Stock launcher whose home screen is sent back here if the firmware revives it (config.xml stock_home_redirect). */
     final String stockHomeRedirect;
+    /** The app the Settings pill opens, "package" or "package/activity"; empty opens Android's settings. */
+    final String settingsApp;
     /** A Live TV window the firmware opens by itself at power-on is sent back to Home (power_on_home). */
     final boolean powerOnHome;
     /** Every Home press opens this launcher, a held one too, instead of Android's long-press action (home_long_press_home). */
@@ -280,7 +282,7 @@ final class Config {
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean weatherEnabled, String weatherCity, double weatherLat, double weatherLon, String weatherUnits) {
+                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean weatherEnabled, String weatherCity, double weatherLat, double weatherLon, String weatherUnits, String settingsApp) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -381,6 +383,7 @@ final class Config {
         this.weatherLat = weatherLat;
         this.weatherLon = weatherLon;
         this.weatherUnits = weatherUnits;
+        this.settingsApp = settingsApp;
         this.wifiStatusWarnings = wifiStatusWarnings;
         this.topBarApps = Collections.unmodifiableList(topBarApps);
         this.showGreeting = showGreeting;
@@ -482,6 +485,7 @@ final class Config {
         boolean handleViewInputs = res.getBoolean(R.bool.handle_view_inputs);
         List<String> appKeys = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_keys)));
         String stockHomeRedirect = res.getString(R.string.stock_home_redirect).trim();
+        String settingsApp = res.getString(R.string.settings_app).trim();
         boolean cinematic = res.getBoolean(R.bool.cinematic_home);
         boolean ambientGlow = res.getBoolean(R.bool.ambient_glow);
         boolean appGlow = res.getBoolean(R.bool.app_glow);
@@ -592,6 +596,7 @@ final class Config {
             handleViewInputs = bool(json, "handle_view_inputs", handleViewInputs);
             appKeys = stringList(json, "app_keys", appKeys);
             stockHomeRedirect = string(json, "stock_home_redirect", stockHomeRedirect);
+            settingsApp = string(json, "settings_app", settingsApp).trim();
             cinematic = bool(json, "cinematic_home", cinematic);
             ambientGlow = bool(json, "ambient_glow", ambientGlow);
             appGlow = bool(json, "app_glow", appGlow);
@@ -689,7 +694,7 @@ final class Config {
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
-                weatherOn, weatherLabel, weatherLatN, weatherLonN, weatherUnit);
+                weatherOn, weatherLabel, weatherLatN, weatherLonN, weatherUnit, settingsApp);
     }
 
     /**

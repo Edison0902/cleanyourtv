@@ -290,55 +290,30 @@
                     </LinearLayout>
                 </LinearLayout>
 
-            <!-- The weather block, Apple Weather style: the city and today's range on the left, the
-                 current conditions large on the right, the next 24 hours below. One card-width for
-                 both lines keeps the block level with the pills on the right. Hidden entirely (no
-                 gap) while never fetched or older than three hours. -->
-            <LinearLayout
-                android:id="@+id/hereWeather"
-                android:layout_width="440dp"
+            <!-- The weather as one quiet line: "Wuhan  17~25°C  Overcast, rain later". Pressing it
+                 opens the card with the 24-hour curve. Hidden entirely (no gap) while never fetched
+                 or older than three hours. -->
+            <TextView
+                android:id="@+id/weatherLine"
+                android:gravity="left|center_vertical"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:layout_marginTop="18dp"
-                android:orientation="horizontal"
-                android:baselineAligned="false"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/hereRange"
-                    android:gravity="left|bottom"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom"
-                    android:singleLine="true"
-                    android:textColor="#A6FFFFFF"
-                    android:textSize="14sp"
-                    android:fontFamily="@string/font_regular"
-                    android:letterSpacing="0.14"
-                    android:includeFontPadding="false" />
-
-                <TextView
-                    android:id="@+id/hereTemp"
-                    android:gravity="right|bottom"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom"
-                    android:singleLine="true"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="26sp"
-                    android:fontFamily="@string/font_light"
-                    android:includeFontPadding="false" />
-            </LinearLayout>
-
-            <!-- The next 24 hours: temperature curve with the current hour, the low and the high,
-                 and the chance of precipitation. -->
-            <com.gathin.tvhome.WeatherCurveView
-                android:id="@+id/weatherCurve"
-                android:layout_width="440dp"
-                android:layout_height="74dp"
-                android:layout_marginStart="4dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/wx_line_bg"
+                android:focusable="true"
+                android:clickable="true"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:singleLine="true"
+                android:textColor="#D9FFFFFF"
+                android:textSize="14sp"
+                android:fontFamily="@string/font_regular"
+                android:letterSpacing="0.10"
+                android:includeFontPadding="false"
+                android:nextFocusDown="@+id/grid"
                 android:visibility="gone" />
 
             </LinearLayout>
