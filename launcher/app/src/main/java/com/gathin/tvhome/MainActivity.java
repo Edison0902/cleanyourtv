@@ -48,10 +48,13 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.style.DynamicDrawableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.ImageSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -176,6 +179,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean advancedEffects;
     private TextView greeting;
     private View clockBlock;
+    /** Current conditions beside the clock (weather); hidden entirely while never fetched or stale. */
+    private Weather weather;
+    private View hereWeather;
+    private TextView hereTemp, hereRange;
+    private String weatherCity;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
@@ -373,6 +381,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void run() {
             updateGreeting();
+            weather.maybeFetch(false, MainActivity.this::renderWeather);
             updateRace();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
@@ -392,6 +401,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        weather = new Weather(this);
+        weatherCity = cfg.weatherCity;
         homeAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
@@ -465,6 +476,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
         clockBlock = findViewById(R.id.leftBlock);
+        hereTemp = findViewById(R.id.hereTemp);
+        hereRange = findViewById(R.id.hereRange);
+        hereWeather = findViewById(R.id.hereWeather);
         greetingColor = greeting.getCurrentTextColor();
         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
         if (cfg.headerWhite) {
@@ -973,6 +987,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
+        renderWeather();
+        weather.maybeFetch(false, this::renderWeather);
         updateRace();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
@@ -1216,6 +1232,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        weather.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -2482,6 +2499,39 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             handler.postDelayed(clockCheck, 1_000L);
         }
+    }
+
+    /** Current conditions beside the clock; hidden entirely (no gap) while never fetched or older than three hours. */
+    private void renderWeather() {
+        Weather.City c = weather == null ? null : weather.current();
+        hereWeather.setVisibility(c == null ? View.GONE : View.VISIBLE);
+        if (c == null) return;
+        hereTemp.setText(tempText(c, hereTemp.getTextSize()));
+        String range = c.hasRange ? "↑" + c.max + "°  ↓" + c.min + "°" : "";
+        hereRange.setText(range.isEmpty() ? weatherCity
+                : (weatherCity.isEmpty() ? range : weatherCity + " · " + range));
+    }
+
+    /** "[icon] 18°": the conditions icon inline in the temp TextView, at the text's size. */
+    private CharSequence tempText(Weather.City c, float textPx) {
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        appendIcon(sb, Weather.icon(c), hereTemp.getCurrentTextColor(), textPx);
+        sb.append("  ").append(String.valueOf(c.temp)).append("°");
+        return sb;
+    }
+
+    /** A weather icon inline in a TextView, centred on the line (WidgeTV's ImageSpan trick). */
+    private void appendIcon(SpannableStringBuilder sb, int res, int color, float textPx) {
+        Drawable d = getDrawable(res).mutate();
+        d.setTint(color);
+        int size = Math.round(textPx * 0.9f * 1.15f); // the 24-unit icon has ~2 units of padding per side
+        d.setBounds(0, 0, size, size);
+        int s = sb.length();
+        sb.append("\uFFFC");
+        // ALIGN_CENTER is API 29; Android 9 sits the icon on the line's bottom instead.
+        int align = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                ? DynamicDrawableSpan.ALIGN_CENTER : DynamicDrawableSpan.ALIGN_BOTTOM;
+        sb.setSpan(new ImageSpan(d, align), s, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
 
     private void updateGreeting() {

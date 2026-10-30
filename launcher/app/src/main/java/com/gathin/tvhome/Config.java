@@ -258,6 +258,14 @@ final class Config {
     final boolean singleRow;
     /** With single_row, the band runs behind every app in the row, not only the dock apps (config.xml, dock_band_all). */
     final boolean dockBandAll;
+    /** Current conditions beside the clock from Open-Meteo (config.xml, weather_enabled; off unless a theme turns it on). */
+    final boolean weatherEnabled;
+    /** The weather's city label shown with the temperatures (config.xml, weather_city); empty shows no name. */
+    final String weatherCity;
+    /** The city's coordinates (config.xml, weather_lat / weather_lon); empty or out of range keeps weather off. */
+    final double weatherLat, weatherLon;
+    /** c or f (config.xml, weather_units). */
+    final String weatherUnits;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
@@ -272,7 +280,7 @@ final class Config {
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly) {
+                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean weatherEnabled, String weatherCity, double weatherLat, double weatherLon, String weatherUnits) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -368,6 +376,11 @@ final class Config {
         this.homeLongPressHome = homeLongPressHome;
         this.powerOnHomeAlways = powerOnHomeAlways;
         this.inputsConnectedOnly = inputsConnectedOnly;
+        this.weatherEnabled = weatherEnabled;
+        this.weatherCity = weatherCity;
+        this.weatherLat = weatherLat;
+        this.weatherLon = weatherLon;
+        this.weatherUnits = weatherUnits;
         this.wifiStatusWarnings = wifiStatusWarnings;
         this.topBarApps = Collections.unmodifiableList(topBarApps);
         this.showGreeting = showGreeting;
@@ -427,6 +440,11 @@ final class Config {
         boolean lunar = res.getBoolean(R.bool.lunar_date);
         int lunarOffset = -1;
         String greetingName = res.getString(R.string.greeting_name).trim();
+        boolean weatherOn = res.getBoolean(R.bool.weather_enabled);
+        String weatherLabel = res.getString(R.string.weather_city).trim();
+        double weatherLatN = coordinate(res.getString(R.string.weather_lat), 90);
+        double weatherLonN = coordinate(res.getString(R.string.weather_lon), 180);
+        String weatherUnit = "f".equalsIgnoreCase(res.getString(R.string.weather_units).trim()) ? "f" : "c";
         boolean moduleCards = res.getBoolean(R.bool.module_cards);
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         boolean bootToLiveTv = res.getBoolean(R.bool.boot_to_live_tv);
@@ -532,6 +550,11 @@ final class Config {
             lunar = bool(json, "lunar_date", lunar);
             lunarOffset = integer(json, "lunar_utc_offset", lunarOffset, -1, 14);
             greetingName = string(json, "greeting_name", greetingName).trim();
+            weatherOn = bool(json, "weather", weatherOn);
+            weatherLabel = string(json, "weather_city", weatherLabel).trim();
+            weatherLatN = json.optDouble("weather_lat", weatherLatN);
+            weatherLonN = json.optDouble("weather_lon", weatherLonN);
+            weatherUnit = string(json, "weather_units", weatherUnit).trim();
             moduleCards = bool(json, "module_cards", moduleCards);
             reducedMotion = bool(json, "reduced_motion", reducedMotion);
             bootToLiveTv = bool(json, "boot_to_live_tv", bootToLiveTv);
@@ -665,7 +688,8 @@ final class Config {
                 dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
-                dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly);
+                dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
+                weatherOn, weatherLabel, weatherLatN, weatherLonN, weatherUnit);
     }
 
     /**
@@ -673,6 +697,16 @@ final class Config {
      * "sessions": [{"name": "FP1", "start": "2026-10-23T17:30:00Z"}, ...]}, ...]}. A race or session that does
      * not parse is left out on its own; the rest of the calendar still counts.
      */
+    /** Parses a coordinate, NaN when empty, unparsable or out of range; NaN keeps the weather off. */
+    private static double coordinate(String s, double max) {
+        try {
+            double v = Double.parseDouble(s.trim());
+            return Double.isNaN(v) || Math.abs(v) > max ? Double.NaN : v;
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
     private static List<RaceWeekend.Race> raceCalendar(JSONObject json) {
         List<RaceWeekend.Race> races = new ArrayList<>();
         JSONArray list = json.optJSONArray("race_calendar");
