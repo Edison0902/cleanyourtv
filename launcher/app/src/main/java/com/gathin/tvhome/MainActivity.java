@@ -183,6 +183,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private Weather weather;
     private View hereWeather;
     private TextView hereTemp, hereRange;
+    private WeatherCurveView weatherCurve;
     private String weatherCity;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
@@ -381,6 +382,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void run() {
             updateGreeting();
+            renderWeather(); // the curve's window slides with the hour; maybeFetch only when stale
             weather.maybeFetch(false, MainActivity.this::renderWeather);
             updateRace();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
@@ -479,6 +481,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hereTemp = findViewById(R.id.hereTemp);
         hereRange = findViewById(R.id.hereRange);
         hereWeather = findViewById(R.id.hereWeather);
+        weatherCurve = findViewById(R.id.weatherCurve);
         greetingColor = greeting.getCurrentTextColor();
         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
         if (cfg.headerWhite) {
@@ -2505,6 +2508,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void renderWeather() {
         Weather.City c = weather == null ? null : weather.current();
         hereWeather.setVisibility(c == null ? View.GONE : View.VISIBLE);
+        Weather.Hourly h = weather == null ? null : weather.hourly();
+        weatherCurve.setVisibility(h == null ? View.GONE : View.VISIBLE);
+        if (h != null) weatherCurve.setData(h, System.currentTimeMillis());
         if (c == null) return;
         hereTemp.setText(tempText(c, hereTemp.getTextSize()));
         String range = c.hasRange ? "↑" + c.max + "°  ↓" + c.min + "°" : "";

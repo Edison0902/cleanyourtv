@@ -152,4 +152,7 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Last opened %1$s</string>
+    <!-- The weather curve under the clock: the current hour and the hours along its bottom. -->
+    <string name="wx_now">Now</string>
+    <string name="wx_hour">%1$d:00</string>
 </resources>

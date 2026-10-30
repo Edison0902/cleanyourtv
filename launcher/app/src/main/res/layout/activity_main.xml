@@ -327,6 +327,16 @@
                     </LinearLayout>
                 </LinearLayout>
 
+            <!-- The next 24 hours: temperature curve with the current hour, the low and the high,
+                 and the chance of precipitation. Gone while weather has nothing to show. -->
+            <com.gathin.tvhome.WeatherCurveView
+                android:id="@+id/weatherCurve"
+                android:layout_width="300dp"
+                android:layout_height="74dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="10dp"
+                android:visibility="gone" />
+
             </LinearLayout>
 
             <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock

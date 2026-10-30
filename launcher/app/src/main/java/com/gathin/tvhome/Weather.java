@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -63,7 +64,9 @@ final class Weather {
         url = "https://api.open-meteo.com/v1/forecast?latitude=" + coord(cfg.weatherLat)
                 + "&longitude=" + coord(cfg.weatherLon)
                 + "&current=temperature_2m,weather_code,is_day"
-                + "&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1"
+                + "&daily=temperature_2m_max,temperature_2m_min"
+                // Two days of hourly points: the curve needs the next 24 hours even late in the day.
+                + "&hourly=temperature_2m,precipitation_probability&timezone=auto&forecast_days=2"
                 // config stores c/f; the API wants the full word.
                 + "&temperature_unit=" + ("f".equals(cfg.weatherUnits) ? "fahrenheit" : "celsius");
     }
@@ -121,6 +124,7 @@ final class Weather {
             String json = body.toString("UTF-8").trim();
             JSONObject cur = new JSONObject(json).getJSONObject("current");
             JSONObject daily = new JSONObject(json).getJSONObject("daily");
+            JSONObject hourly = new JSONObject(json).getJSONObject("hourly");
             SharedPreferences.Editor e = prefs.edit();
             double t = cur.getDouble("temperature_2m");
             e.putInt("t", (int) Math.round(t))
@@ -128,17 +132,80 @@ final class Weather {
                     .putBoolean("d", cur.getInt("is_day") == 1)
                     .putInt("x", (int) Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0)))
                     .putInt("n", (int) Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0)));
+            JSONArray hTimes = hourly.getJSONArray("time");
+            JSONArray hTemps = hourly.getJSONArray("temperature_2m");
+            JSONArray hPop = hourly.optJSONArray("precipitation_probability");
+            StringBuilder ts = new StringBuilder(), cs = new StringBuilder(), ps = new StringBuilder();
+            for (int i = 0; i < hTimes.length(); i++) {
+                if (i > 0) { ts.append(','); cs.append(','); ps.append(','); }
+                ts.append(hTimes.getString(i));
+                cs.append(hTemps.getDouble(i));
+                ps.append(hPop == null ? -1 : Math.round(hPop.getDouble(i)));
+            }
+            e.putString("hT", ts.toString()).putString("hC", cs.toString()).putString("hP", ps.toString())
+                    .putInt("hOff", new JSONObject(json).getInt("utc_offset_seconds"));
             e.putString("url", url).putLong("at", System.currentTimeMillis()).apply();
             Log.i(TAG, "weather: fetch ok here=" + t + " code=" + cur.getInt("weather_code")
                     + " is_day=" + (cur.getInt("is_day") == 1 ? 1 : 0)
                     + " max=" + daily.getJSONArray("temperature_2m_max").getDouble(0)
-                    + " min=" + daily.getJSONArray("temperature_2m_min").getDouble(0));
+                    + " min=" + daily.getJSONArray("temperature_2m_min").getDouble(0)
+                    + " hours=" + hTimes.length());
             return true;
         } catch (Exception ex) {
             Log.w(TAG, "weather: fetch failed: " + ex);
             return false;
         } finally {
             if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * The hourly points behind the 24-hour curve. Times are the city's local hours encoded as UTC
+     * (parsed with the response's utc_offset_seconds), so the curve's window can be picked with one
+     * arithmetic clock that does not depend on the TV's time zone.
+     */
+    static final class Hourly {
+        final long[] atLocal;
+        final float[] temps;
+        /** Precipitation probability 0–100, -1 when the model gave none. */
+        final int[] pop;
+        /** The city's seconds east of UTC, for turning the TV's now into the city's local scale. */
+        final int offsetSec;
+
+        Hourly(long[] atLocal, float[] temps, int[] pop, int offsetSec) {
+            this.atLocal = atLocal;
+            this.temps = temps;
+            this.pop = pop;
+            this.offsetSec = offsetSec;
+        }
+    }
+
+    /** The hourly points from the same fetch as current(), or null when weather is hidden. */
+    Hourly hourly() {
+        if (!enabled || !url.equals(prefs.getString("url", ""))) return null;
+        long at = prefs.getLong("at", 0);
+        if (at == 0 || System.currentTimeMillis() - at > HIDE_MS) return null;
+        String tS = prefs.getString("hT", ""), cS = prefs.getString("hC", ""), pS = prefs.getString("hP", "");
+        if (tS.isEmpty()) return null;
+        try {
+            String[] ts = tS.split(",");
+            String[] cs = cS.split(",");
+            String[] ps = pS.isEmpty() ? new String[0] : pS.split(",");
+            int off = prefs.getInt("hOff", 0);
+            long[] atLocal = new long[ts.length];
+            float[] temps = new float[ts.length];
+            int[] pop = new int[ts.length];
+            for (int i = 0; i < ts.length; i++) {
+                // The ISO times are the city's local wall clock; encoding them as UTC minus the
+                // offset gives a single monotonic scale for the window arithmetic below.
+                atLocal[i] = java.time.LocalDateTime.parse(ts[i]).toEpochSecond(java.time.ZoneOffset.UTC);
+                temps[i] = Float.parseFloat(cs[i]);
+                pop[i] = i < ps.length ? Integer.parseInt(ps[i]) : -1;
+            }
+            return new Hourly(atLocal, temps, pop, off);
+        } catch (Exception ex) {
+            Log.w(TAG, "weather: bad hourly cache: " + ex);
+            return null;
         }
     }
 

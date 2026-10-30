@@ -93,4 +93,7 @@
         <item quantity="other">%1$d 個應用程式</item>
     </plurals>
     <string name="greeting_with_name">%1$s，%2$s</string>
+    <!-- The weather curve under the clock: the current hour and the hours along its bottom. -->
+    <string name="wx_now">現在</string>
+    <string name="wx_hour">%1$d時</string>
 </resources>

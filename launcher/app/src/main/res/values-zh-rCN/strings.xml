@@ -146,4 +146,7 @@
     <string name="tile_add_to_dock">添加到程序坞</string>
     <string name="tile_move">移动</string>
     <string name="tile_replace_in_dock">替换为其他应用</string>
+    <!-- The weather curve under the clock: the current hour and the hours along its bottom. -->
+    <string name="wx_now">现在</string>
+    <string name="wx_hour">%1$d时</string>
 </resources>
