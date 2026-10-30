@@ -776,13 +776,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
             if (!iconOnlyButtons) makeIconOnly((TextView) btnSettings);
             btnSettings.setOnClickListener(v -> showTopMenu());
-            // The lone gear sits at the header's middle, not on its bottom line like the row of pills.
+            // The lone gear sits in the top-right corner, level with the greeting and the clock:
+            // leftBlock now carries the weather and the curve below the clock, so the header's
+            // middle — where the gear used to hang — reads as empty sky above a crowded left.
             LinearLayout topButtons = findViewById(R.id.topButtons);
             RelativeLayout.LayoutParams tlp = (RelativeLayout.LayoutParams) topButtons.getLayoutParams();
+            tlp.addRule(RelativeLayout.ALIGN_BOTTOM, 0);
             tlp.addRule(RelativeLayout.ALIGN_TOP, R.id.leftBlock);
+            tlp.topMargin = Math.round(6 * density);
             tlp.bottomMargin = 0;
             topButtons.setLayoutParams(tlp);
-            topButtons.setGravity(Gravity.CENTER_VERTICAL);
         }
         if (iconOnlyButtons) {
             if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
