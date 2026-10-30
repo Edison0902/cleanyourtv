@@ -107,6 +107,5 @@
     <string name="wx_cond_snow">雪</string>
     <string name="wx_cond_showers">陣雨</string>
     <string name="wx_cond_storm">雷陣雨</string>
-    <string name="wx_later_rain">轉雨</string>
-    <string name="wx_later_snow">轉雪</string>
+    <string name="wx_turn">%1$s轉%2$s</string>
 </resources>

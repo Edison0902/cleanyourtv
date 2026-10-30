@@ -166,6 +166,5 @@
     <string name="wx_cond_snow">Snow</string>
     <string name="wx_cond_showers">Showers</string>
     <string name="wx_cond_storm">Thunderstorm</string>
-    <string name="wx_later_rain">, rain later</string>
-    <string name="wx_later_snow">, snow later</string>
+    <string name="wx_turn">%1$s → %2$s</string>
 </resources>

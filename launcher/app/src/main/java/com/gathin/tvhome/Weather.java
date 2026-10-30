@@ -238,21 +238,30 @@ final class Weather {
         return R.string.wx_cond_rain;
     }
 
+    /** The six conditions the line distinguishes: clear, partly, overcast, fog, rain, snow. */
+    static int kindOf(int code) {
+        if (code <= 1) return 0;
+        if (code == 2) return 1;
+        if (code == 45 || code == 48) return 3;
+        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return 5;
+        if (isWet(code)) return 4;
+        return 2;
+    }
+
     /**
-     * What the next twelve hours bring, when the air is not doing it already: 0 nothing, 1 rain,
-     * 2 snow — the first kind the model brings beats whatever comes later.
+     * The weather the model sees at the end of the next twelve hours — the majority of the last
+     * three hours of the window, so one odd hour doesn't count as a change. Compare kinds with
+     * kindOf to decide whether the line says 转X at all.
      */
-    static int laterKind(Hourly h, long nowMillis) {
-        if (h == null) return 0;
+    static int futureCode(Hourly h, long nowMillis) {
+        if (h == null || h.codes.length == 0) return 0;
         long hourNow = Math.floorDiv(nowMillis / 1000L + h.offsetSec, 3600L) * 3600L;
-        int seen = 0;
-        for (int i = 0; i < h.atLocal.length && h.atLocal[i] < hourNow + 12 * 3600L; i++) {
-            if (h.atLocal[i] < hourNow) continue;
-            if (!isWet(h.codes[i])) continue;
-            int kind = (h.codes[i] >= 71 && h.codes[i] <= 77) || h.codes[i] == 85 || h.codes[i] == 86 ? 2 : 1;
-            if (seen == 0) seen = kind;
-        }
-        return seen;
+        int start = 0;
+        while (start < h.atLocal.length && h.atLocal[start] < hourNow) start++;
+        int end = Math.min(h.atLocal.length, start + 12);
+        if (end - start < 3) return h.codes[Math.min(start, h.codes.length - 1)];
+        int a = h.codes[end - 3], b = h.codes[end - 2], c = h.codes[end - 1];
+        return (a == b || a == c) ? a : b;
     }
 
     /** WMO weather code to one of the seven thin-line icons. */

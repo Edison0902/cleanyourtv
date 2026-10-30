@@ -2529,12 +2529,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         StringBuilder sb = new StringBuilder();
         if (!weatherCity.isEmpty()) sb.append(weatherCity).append("  ");
         if (c.hasRange) sb.append(c.min).append("~").append(c.max).append("℃  ");
-        sb.append(getString(Weather.conditionRes(c.code)));
-        if (!Weather.isWet(c.code)) {
-            int later = Weather.laterKind(h, System.currentTimeMillis());
-            if (later == 1) sb.append(getString(R.string.wx_later_rain));
-            else if (later == 2) sb.append(getString(R.string.wx_later_snow));
-        }
+        // The line's words are whatever the air is doing now; when the model sees a different
+        // condition by the end of the twelve hours — 多云转晴, 晴转雨, anything — it says so.
+        int curRes = Weather.conditionRes(c.code);
+        if (h != null) {
+            int future = Weather.futureCode(h, System.currentTimeMillis());
+            int futRes = Weather.conditionRes(future);
+            if (Weather.kindOf(future) != Weather.kindOf(c.code)) {
+                sb.append(getString(R.string.wx_turn, getString(curRes), getString(futRes)));
+            } else sb.append(getString(curRes));
+        } else sb.append(getString(curRes));
         weatherLine.setText(sb);
         if (weatherPopup != null && weatherPopup.isShowing()) {
             popupTemp.setText(tempText(c, popupTemp.getTextSize()));
