@@ -804,7 +804,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
         btnSettings.setOnLongClickListener(v -> {
-            showSettingsMenu();
+            // The vendor settings own the tap (settings_app); the long press opens this launcher's
+            // own settings - the wallpaper picker lives there.
+            startActivityForResult(new Intent(this, LauncherSettingsActivity.class),
+                    LAUNCHER_SETTINGS_REQUEST);
             return true;
         });
 
