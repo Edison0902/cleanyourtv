@@ -484,15 +484,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         clockBlock = findViewById(R.id.leftBlock);
         weatherLine = findViewById(R.id.weatherLine);
         weatherLine.setOnClickListener(v -> toggleWeatherCard());
-        // Up from the line lands on the top bar: above it there is nothing focusable, and without
-        // this hand-off the remote's Up simply died there.
-        weatherLine.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                firstTopButton().requestFocus();
-                return true;
-            }
-            return false;
-        });
         greetingColor = greeting.getCurrentTextColor();
         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
         if (cfg.headerWhite) {
@@ -828,11 +819,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(singleRow ? lastFocused : lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
-            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
+            // Left/Right fall through to the default focus search: the row's neighbours are the
+            // other pills and the weather line at its right end, all on one horizontal band. At the
+            // true ends the search finds nothing and the key stops on its own.
+            return false;
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
@@ -2599,13 +2589,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weatherPopup.setOnDismissListener(() -> {
             if (weatherLine.getVisibility() == View.VISIBLE) weatherLine.requestFocus();
         });
-        // The card hangs beside the line, in the empty top-right: dropping it straight down would
-        // cover only the top half of the dock title underneath, leaving its legs showing.
+        // The card hangs below the line, clamped to the screen: the line sits at the row's right
+        // end now, so an unclamped hang would push most of the card off the right edge.
+        card.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         int[] loc = new int[2];
         weatherLine.getLocationOnScreen(loc);
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        int x = Math.max(Math.round(24 * density), Math.min(
+                loc[0] + weatherLine.getWidth() - card.getMeasuredWidth(),
+                screenW - card.getMeasuredWidth() - Math.round(24 * density)));
         weatherPopup.showAtLocation(weatherLine, Gravity.NO_GRAVITY,
-                loc[0] + weatherLine.getWidth() + Math.round(28 * density),
-                loc[1] - Math.round(4 * density));
+                x, loc[1] + weatherLine.getHeight() + Math.round(10 * density));
         renderWeather();
     }
 
