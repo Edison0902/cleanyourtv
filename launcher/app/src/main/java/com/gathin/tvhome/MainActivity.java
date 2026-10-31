@@ -484,6 +484,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         clockBlock = findViewById(R.id.leftBlock);
         weatherLine = findViewById(R.id.weatherLine);
         weatherLine.setOnClickListener(v -> toggleWeatherCard());
+        // Up from the line lands on the top bar: above it there is nothing focusable, and without
+        // this hand-off the remote's Up simply died there.
+        weatherLine.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                firstTopButton().requestFocus();
+                return true;
+            }
+            return false;
+        });
         greetingColor = greeting.getCurrentTextColor();
         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
         if (cfg.headerWhite) {
@@ -2558,7 +2567,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int pad = Math.round(18 * density);
         card.setPadding(pad, pad, pad, Math.round(10 * density));
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(weatherCardColor());
+        // The dock band's glass, a step darker so the text reads: the wallpaper shows through and
+        // the card belongs to the same family as the band and the buttons on every wallpaper.
+        bg.setColor(0xB8080E0B);
         bg.setCornerRadius(22 * density);
         bg.setStroke(Math.round(1 * density), 0x26FFFFFF);
         card.setBackground(bg);
@@ -2596,40 +2607,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 loc[0] + weatherLine.getWidth() + Math.round(28 * density),
                 loc[1] - Math.round(4 * density));
         renderWeather();
-    }
-
-    /**
-     * The card's colour, picked from the wallpaper: its average hue, pressed down to a deep tint so
-     * the white text always reads. Recomputed on every open, so a rotation changes the card with it.
-     */
-    private int weatherCardColor() {
-        Bitmap bp = wallpaperPlayer == null ? null : wallpaperPlayer.current();
-        if (bp == null) return 0xFF141B14;
-        // The card lives in the upper part of the screen: sample that region, not the whole picture
-        // whose lower half is usually much darker. A hardware bitmap cannot be drawn on a software
-        // canvas, so it is copied to memory first (a few MB, once per card opening).
-        if (bp.getConfig() == Bitmap.Config.HARDWARE) {
-            Bitmap soft = bp.copy(Bitmap.Config.ARGB_8888, false);
-            int out = cardColorFrom(soft);
-            soft.recycle();
-            return out;
-        }
-        return cardColorFrom(bp);
-    }
-
-    /** Average colour of the wallpaper's upper two fifths, pressed down to a deep readable tint. */
-    private int cardColorFrom(Bitmap bp) {
-        Bitmap one = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-        new Canvas(one).drawBitmap(bp,
-                new Rect(0, 0, bp.getWidth(), Math.max(1, bp.getHeight() * 2 / 5)),
-                new Rect(0, 0, 1, 1), null);
-        int c = one.getPixel(0, 0);
-        one.recycle();
-        float[] hsv = new float[3];
-        Color.colorToHSV(c, hsv);
-        hsv[1] = Math.min(hsv[1], 0.45f);
-        hsv[2] = Math.max(0.08f, Math.min(0.18f, hsv[2] * 0.38f));
-        return Color.HSVToColor(0xFF, hsv);
     }
 
     /** "[icon] 18°": the conditions icon inline in the temp TextView, at the text's size. */
