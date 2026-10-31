@@ -171,7 +171,6 @@
                 android:layout_toStartOf="@+id/topButtons"
                 android:layout_marginEnd="16dp"
                 android:layout_marginTop="56dp"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- The lock-screen order: the date line on top, the big clock under it, then the
                      weather - all sharing the 60dp left edge (the weather pill tucks out by its
@@ -192,11 +191,54 @@
                     android:visibility="gone" />
 
                 <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:orientation="horizontal">
+
+                    <TextClock
+                        android:id="@+id/clock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:format12Hour="h:mm"
+                        android:format24Hour="HH:mm"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="79sp"
+                        android:fontFamily="@string/font_light"
+                        android:letterSpacing="-0.04"
+                        android:includeFontPadding="false" />
+
+                    <TextClock
+                        android:id="@+id/ampm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_gravity="bottom"
+                        android:layout_marginBottom="8dp"
+                        android:format12Hour="a"
+                        android:format24Hour=""
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="15sp"
+                        android:fontFamily="@string/font_medium"
+                        android:letterSpacing="0.08"
+                        android:textAllCaps="true" />
+
+                    <View
+                        android:id="@+id/clockDivider"
+                        android:layout_width="1dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="bottom"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="#33FFFFFF"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:id="@+id/dateRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center">
+                    android:orientation="horizontal">
 
                     <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
                     <TextView
@@ -236,57 +278,14 @@
                         android:layout_marginStart="14dp"
                         android:singleLine="true"
                         android:textColor="#80FFFFFF"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:fontFamily="@string/font_regular"
                         android:letterSpacing="0.10"
+                        android:textAllCaps="true"
                         android:includeFontPadding="false"
                         android:visibility="gone" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
-                    android:gravity="center">
-
-                    <TextClock
-                        android:id="@+id/clock"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:format12Hour="h:mm"
-                        android:format24Hour="HH:mm"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="79sp"
-                        android:fontFamily="@string/font_light"
-                        android:letterSpacing="-0.04"
-                        android:includeFontPadding="false" />
-
-                    <TextClock
-                        android:id="@+id/ampm"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:layout_gravity="bottom"
-                        android:layout_marginBottom="8dp"
-                        android:format12Hour="a"
-                        android:format24Hour=""
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="15sp"
-                        android:fontFamily="@string/font_medium"
-                        android:letterSpacing="0.08"
-                        android:textAllCaps="true" />
-
-                    <View
-                        android:id="@+id/clockDivider"
-                        android:layout_width="1dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="bottom"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginBottom="8dp"
-                        android:background="#33FFFFFF"
-                        android:visibility="gone" />
-                </LinearLayout>
 
                 <!-- The weather on its own line, the lock screen's third: icon, temperature, city,
                      condition, the day's range. Pressing it opens the 24-hour card. -->
