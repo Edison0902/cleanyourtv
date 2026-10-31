@@ -186,7 +186,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String settingsApp;
     /** The card the weather line opens: the current conditions and the 24-hour curve. */
     private PopupWindow weatherPopup;
-    private TextView popupTemp;
+    private TextView popupTemp, popupDetail;
     private WeatherCurveView popupCurve;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
@@ -2542,6 +2542,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weatherLine.setText(sb);
         if (weatherPopup != null && weatherPopup.isShowing()) {
             popupTemp.setText(tempText(c, popupTemp.getTextSize()));
+            popupDetail.setText(getString(R.string.wx_details, String.valueOf(c.feels), c.humidity, c.wind));
             if (h != null) popupCurve.setData(h, System.currentTimeMillis());
         }
     }
@@ -2566,6 +2567,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popupTemp.setTypeface(UiFont.get(this, R.string.font_light));
         popupTemp.setIncludeFontPadding(false);
         card.addView(popupTemp);
+        popupDetail = new TextView(this);
+        popupDetail.setTextColor(0xB3FFFFFF);
+        popupDetail.setTextSize(12.5f);
+        popupDetail.setTypeface(UiFont.get(this, R.string.font_regular));
+        popupDetail.setIncludeFontPadding(false);
+        LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        dp.topMargin = Math.round(6 * density);
+        card.addView(popupDetail, dp);
         popupCurve = new WeatherCurveView(this);
         popupCurve.setVisibility(View.VISIBLE);
         card.addView(popupCurve, new LinearLayout.LayoutParams(

@@ -174,4 +174,6 @@
     <string name="fest_double_ninth">重阳节</string>
     <string name="fest_laba">腊八节</string>
     <string name="fest_new_years_eve">除夕</string>
+    <!-- The weather card's detail line. -->
+    <string name="wx_details">体感 %1$s° · 湿度 %2$d%% · 风 %3$d km/h</string>
 </resources>

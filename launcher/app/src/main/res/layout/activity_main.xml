@@ -222,6 +222,32 @@
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
+                    <!-- The weather on the clock row, its baseline on the clock's: "武汉 17~25℃ 晴".
+                         Pressing it opens the card with the 24-hour curve. Hidden entirely (no gap)
+                         while never fetched or older than three hours. -->
+                    <TextView
+                        android:id="@+id/weatherLine"
+                        android:gravity="left|bottom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="28dp"
+                        android:layout_marginBottom="9dp"
+                        android:background="@drawable/wx_line_bg"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="7dp"
+                        android:paddingBottom="7dp"
+                        android:singleLine="true"
+                        android:textColor="#D9FFFFFF"
+                        android:textSize="14sp"
+                        android:fontFamily="@string/font_regular"
+                        android:letterSpacing="0.10"
+                        android:includeFontPadding="false"
+                        android:nextFocusDown="@+id/grid"
+                        android:visibility="gone" />
+
                     <View
                         android:id="@+id/clockDivider"
                         android:layout_width="1dp"
@@ -290,32 +316,6 @@
                     </LinearLayout>
                 </LinearLayout>
 
-            <!-- The weather as one quiet line: "Wuhan  17~25°C  Overcast, rain later". Pressing it
-                 opens the card with the 24-hour curve. Hidden entirely (no gap) while never fetched
-                 or older than three hours. -->
-            <TextView
-                android:id="@+id/weatherLine"
-                android:gravity="left|center_vertical"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="-14dp"
-                android:layout_marginTop="20dp"
-                android:background="@drawable/wx_line_bg"
-                android:focusable="true"
-                android:clickable="true"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="7dp"
-                android:paddingBottom="7dp"
-                android:singleLine="true"
-                android:textColor="#D9FFFFFF"
-                android:textSize="14sp"
-                android:fontFamily="@string/font_regular"
-                android:letterSpacing="0.10"
-                android:includeFontPadding="false"
-                android:nextFocusDown="@+id/grid"
-                android:visibility="gone" />
-
             </LinearLayout>
 
             <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock
@@ -342,8 +342,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:layout_alignBottom="@id/leftBlock"
-                android:layout_marginBottom="6dp"
+                android:layout_alignTop="@id/leftBlock"
+                android:layout_marginTop="4dp"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:orientation="horizontal">

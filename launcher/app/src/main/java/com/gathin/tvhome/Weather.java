@@ -38,14 +38,20 @@ final class Weather {
         /** Today's high/low in the city's own local day. */
         final int max, min;
         final boolean hasRange;
+        /** The card's details: apparent temperature, relative humidity, wind at 10 m. */
+        final int feels, humidity, wind;
 
-        City(int temp, int code, boolean day, int max, int min, boolean hasRange) {
+        City(int temp, int code, boolean day, int max, int min, boolean hasRange,
+             int feels, int humidity, int wind) {
             this.temp = temp;
             this.code = code;
             this.day = day;
             this.max = max;
             this.min = min;
             this.hasRange = hasRange;
+            this.feels = feels;
+            this.humidity = humidity;
+            this.wind = wind;
         }
     }
 
@@ -63,7 +69,7 @@ final class Weather {
         enabled = cfg.weatherEnabled && !Double.isNaN(cfg.weatherLat) && !Double.isNaN(cfg.weatherLon);
         url = "https://api.open-meteo.com/v1/forecast?latitude=" + coord(cfg.weatherLat)
                 + "&longitude=" + coord(cfg.weatherLon)
-                + "&current=temperature_2m,weather_code,is_day"
+                + "&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m"
                 + "&daily=temperature_2m_max,temperature_2m_min"
                 // Two days of hourly points: the curve needs the next 24 hours even late in the day.
                 + "&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&forecast_days=2"
@@ -84,7 +90,8 @@ final class Weather {
         long at = prefs.getLong("at", 0);
         if (at == 0 || System.currentTimeMillis() - at > HIDE_MS) return null;
         return new City(prefs.getInt("t", 0), prefs.getInt("c", 0), prefs.getBoolean("d", true),
-                prefs.getInt("x", 0), prefs.getInt("n", 0), prefs.contains("x"));
+                prefs.getInt("x", 0), prefs.getInt("n", 0), prefs.contains("x"),
+                prefs.getInt("ft", 0), prefs.getInt("hu", 0), prefs.getInt("wd", 0));
     }
 
     /** Fetch if the cache is older than 30 minutes (or force); onDone runs on the main thread after a success. */
@@ -131,7 +138,10 @@ final class Weather {
                     .putInt("c", cur.getInt("weather_code"))
                     .putBoolean("d", cur.getInt("is_day") == 1)
                     .putInt("x", (int) Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0)))
-                    .putInt("n", (int) Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0)));
+                    .putInt("n", (int) Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0)))
+                    .putInt("ft", (int) Math.round(cur.getDouble("apparent_temperature")))
+                    .putInt("hu", (int) Math.round(cur.getDouble("relative_humidity_2m")))
+                    .putInt("wd", (int) Math.round(cur.getDouble("wind_speed_10m")));
             JSONArray hTimes = hourly.getJSONArray("time");
             JSONArray hTemps = hourly.getJSONArray("temperature_2m");
             JSONArray hPop = hourly.optJSONArray("precipitation_probability");
