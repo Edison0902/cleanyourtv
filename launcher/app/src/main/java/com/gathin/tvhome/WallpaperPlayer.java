@@ -48,6 +48,9 @@ final class WallpaperPlayer {
     private final int dimColor;
     /** The picture on screen, released once the next one has been drawn. */
     private Bitmap current;
+
+    /** The wallpaper on screen right now, for colour picked from it (the weather card). */
+    Bitmap current() { return current; }
     private boolean active;
     private boolean closed;
     private boolean loading;
