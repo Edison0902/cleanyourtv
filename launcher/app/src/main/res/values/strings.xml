@@ -182,4 +182,6 @@
     <string name="fest_new_years_eve">New Year\'s Eve</string>
     <!-- The weather card's detail line. -->
     <string name="wx_details">Feels %1$s° · Humidity %2$d%% · Wind %3$d km/h</string>
+    <string name="wx_high">High %1$s°</string>
+    <string name="wx_low">Low %1$s°</string>
 </resources>

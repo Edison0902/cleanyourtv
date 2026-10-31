@@ -37,6 +37,21 @@ final class Lunar {
         return res.getString(R.string.lunar_date_format, l[0], month, year);
     }
 
+    /** The lunar month and day in Chinese numerals: 九月廿二, 闰二月十三. */
+    static String dayHan(int month, int day, int leap) {
+        String[] months = {"", "正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"};
+        StringBuilder sb = new StringBuilder();
+        if (leap == 1) sb.append('闰');
+        sb.append(months[month]).append('月');
+        if (day == 10) sb.append("初十");
+        else if (day == 20) sb.append("二十");
+        else if (day == 30) sb.append("三十");
+        else if (day < 10) sb.append('初').append("一二三四五六七八九".substring(day - 1, day));
+        else if (day < 20) sb.append('十').append("一二三四五六七八九".substring(day - 11, day - 10));
+        else sb.append('廿').append("一二三四五六七八九".substring(day - 21, day - 20));
+        return sb.toString();
+    }
+
     /** Gregorian date to {day, month, year, leap (1 = leap month)} of the lunar calendar at UTC+tz. */
     static int[] fromSolar(int dd, int mm, int yy, double tz) {
         long dayNumber = jdFromDate(dd, mm, yy);

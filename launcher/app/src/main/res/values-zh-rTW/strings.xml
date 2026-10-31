@@ -123,4 +123,6 @@
     <string name="fest_new_years_eve">除夕</string>
     <!-- The weather card's detail line. -->
     <string name="wx_details">體感 %1$s° · 濕度 %2$d%% · 風 %3$d km/h</string>
+    <string name="wx_high">最高 %1$s°</string>
+    <string name="wx_low">最低 %1$s°</string>
 </resources>

@@ -523,7 +523,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         lunarOffset = Lunar.offsetFor(cfg.lunarUtcOffset, Locale.getDefault());
         if (lunar) lunarDate.setVisibility(View.VISIBLE);
         greetingName = cfg.greetingName;
-        if (cfg.dateBelowClock) moveDateBelowClock();
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
             TextView date = findViewById(R.id.date);
@@ -2528,19 +2527,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (weatherPopup != null && weatherPopup.isShowing()) weatherPopup.dismiss();
             return;
         }
-        StringBuilder sb = new StringBuilder();
-        if (!weatherCity.isEmpty()) sb.append(weatherCity).append("  ");
-        if (c.hasRange) sb.append(c.min).append("~").append(c.max).append("℃  ");
-        // The line's words are whatever the air is doing now; when the model sees a different
-        // condition by the end of the twelve hours — 多云转晴, 晴转雨, anything — it says so.
-        int curRes = Weather.conditionRes(c.code);
-        if (h != null) {
-            int future = Weather.futureCode(h, System.currentTimeMillis());
-            int futRes = Weather.conditionRes(future);
-            if (Weather.kindOf(future) != Weather.kindOf(c.code)) {
-                sb.append(getString(R.string.wx_turn, getString(curRes), getString(futRes)));
-            } else sb.append(getString(curRes));
-        } else sb.append(getString(curRes));
+        // The lock screen's third line: icon, temperature, city, condition, the day's range.
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        appendIcon(sb, Weather.icon(c), 0xD9FFFFFF, weatherLine.getTextSize());
+        sb.append("  ").append(String.valueOf(c.temp)).append("°");
+        if (!weatherCity.isEmpty()) sb.append("  ").append(weatherCity);
+        sb.append("  ").append(getString(Weather.conditionRes(c.code)));
+        if (c.hasRange) sb.append("  ").append(getString(R.string.wx_high, String.valueOf(c.max)))
+                .append(" ").append(getString(R.string.wx_low, String.valueOf(c.min)));
         weatherLine.setText(sb);
         if (weatherPopup != null && weatherPopup.isShowing()) {
             popupTemp.setText(tempText(c, popupTemp.getTextSize()));
@@ -2675,8 +2669,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
         if (lunar) {
-            String text = Lunar.today(getResources(), lunarOffset);
-            String fest = Holiday.name(getResources(), Holiday.code(Calendar.getInstance(), lunarOffset));
+            Calendar c = Calendar.getInstance();
+            int[] l = Lunar.fromSolar(c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.MONTH) + 1,
+                    c.get(Calendar.YEAR), lunarOffset);
+            String text = Lunar.dayHan(l[1], l[0], l[3]);
+            String fest = Holiday.name(getResources(), Holiday.code(c, lunarOffset));
             if (fest != null) text += "  ·  " + fest;
             lunarDate.setText(text);
         }
